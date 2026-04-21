@@ -1,0 +1,49 @@
+{
+    "name": "builtnoble/currency-fieldtype",
+    "authors": [
+        {
+            "name": "Amanda Romero",
+            "email": "thetypescriptslayer@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Builtnoble\\CurrencyFieldtype\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Builtnoble\\CurrencyFieldtype\\Tests\\": "tests"
+        }
+    },
+    "require": {
+        "statamic/cms": "^6.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.8",
+        "pestphp/pest": "^4.6"
+    },
+    "scripts": {
+        "test": "pest",
+        "test:feature": "pest --group=\"feature\""
+    },
+    "config": {
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true,
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Currency Fieldtype",
+            "description": "Currency Fieldtype addon"
+        },
+        "laravel": {
+            "providers": [
+                "Builtnoble\\CurrencyFieldtype\\ServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
