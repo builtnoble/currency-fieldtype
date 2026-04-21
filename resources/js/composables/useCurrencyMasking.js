@@ -78,8 +78,6 @@ export const useCurrencyMasking = (
                 return;
             }
 
-            console.log(unmaskedValue);
-
             onUnmaskedValue(unmaskedValue);
         }
     });
