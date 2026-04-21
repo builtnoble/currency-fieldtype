@@ -56,15 +56,15 @@ class Currency extends Fieldtype
     }
 
     /**
-     * Return a numeric value for index/listing sorting.
+     * Return the formatted value shown in control panel index listings.
      */
-    public function preProcessIndex($value): ?int
+    public function preProcessIndex($value): ?string
     {
         if ($value === null) {
-            return null;
+            return $this->formatted(0);
         }
 
-        return (int) $this->sanitizeDigits($value);
+        return $this->formatted($value);
     }
 
     /**

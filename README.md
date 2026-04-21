@@ -58,19 +58,19 @@ Any currency fieldtype that has not had a currency explicitly selected in the Co
 This fieldtype uses the standard Statamic fieldtype lifecycle and maps each method to a specific responsibility:
 
 - **`preload()`**
-    - provides metadata to the Vue component: selected currency, resolved locale, decimal precision, and symbol
+  - provides metadata to the Vue component: selected currency, resolved locale, decimal precision, and symbol
 - **`preProcess($value)`**
-    - transforms stored values into a display/input format suitable for the Vue field component
+  - transforms stored values into a display/input format suitable for the Vue field component
 - **`process($value)`**
-    - transforms the Vue field value back into the persisted integer subunit format
+  - transforms the Vue field value back into the persisted integer subunit format
 - **`preProcessIndex($value)`**
-    - transforms values for Control Panel listing/sorting by returning numeric index values (or `null`)
+  - transforms values for Control Panel index listings into formatted currency strings
 - **`augment($value)`**
-    - transforms stored values for frontend template output (Antlers)
+  - transforms stored values for frontend template output (Antlers)
 
 ### Storage
 
-Values are stored as plain integers representing the smallest unit of the selected currency (cents for USD/EUR/GBP, etc.). A value entered as `$1,234.56` is saved as `123456`.
+Values are stored as plain integers representing the smallest unit of the selected currency (cents for USD/EUR/GBP, etc.). A value entered as `$1,234.56` is saved as `123456`. Empty input is normalized to `0` when the field is processed for saving.
 
 ### Display
 
@@ -83,7 +83,7 @@ When a stored value is augmented for use in Antlers templates, it is formatted a
 
 ### Null handling
 
-If no value has been entered, `preProcess` returns a formatted zero (`$0.00`) so the Vue component always has a valid display value. The index processor returns `null` for empty fields so collection listings sort correctly.
+On the normal save path, empty input is coerced to `0` rather than persisted as `null`. Both `preProcess` and `preProcessIndex` still handle `null` defensively by returning a formatted zero (`$0.00`) so unset, legacy, or externally modified values do not render as blank currency columns.
 
 ### Locale and symbol behavior
 
@@ -91,10 +91,10 @@ Formatting honors the current site locale. For example, a locale like `de_DE` ma
 
 ### Sorting behavior in index views
 
-`preProcessIndex` strips non-digits and returns integers for sortable values. For null values:
+`preProcessIndex` returns the formatted display value shown in the Control Panel index. Sorting still follows the raw saved subunit values stored by the field, not the formatted string returned for display. In the normal save path, empty input sorts as `0` because that is the stored value; `null` is only a defensive read case.
 
-- in ascending sorts, null indexes are ordered before numeric values
-- in descending sorts, null indexes are ordered after numeric values
+- empty values saved through the field sort as `0`
+- unset legacy values that surface as `null` are displayed as `0.00` in the index
 
 ## Running Tests
 

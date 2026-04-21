@@ -46,56 +46,69 @@ describe('preProcess method: transforms the stored value into the format expecte
     });
 });
 
-describe('preProcessIndex method: transforms values for control panel index listing and sorting', function () {
-    it('returns numeric index value with preProcessIndex', function () {
-        expect($this->fieldtype->preProcessIndex('$1,234.56'))->toBe(123456);
+describe('preProcessIndex method: transforms values for control panel index listings', function () {
+    it('returns a formatted index value with preProcessIndex', function () {
+        expect($this->fieldtype->preProcessIndex(1234))->toBe('$1,234.00');
     });
 
-    it('positions a value correctly between smaller and larger values for sorting', function () {
-        $smaller = $this->fieldtype->preProcessIndex('$100.00');
-        $middle = $this->fieldtype->preProcessIndex('$250.00');
-        $larger = $this->fieldtype->preProcessIndex('$400.00');
-
-        expect($smaller)->toBeLessThan($middle)
-            ->and($middle)->toBeLessThan($larger);
-    });
-
-    it('returns null index value with preProcessIndex when input is null', function () {
-        expect($this->fieldtype->preProcessIndex(null))->toBeNull();
-    });
-
-    it('sorts null index values before numeric values in ascending order', function () {
+    it('keeps formatted index values aligned with ascending raw subunit sorting', function () {
         $indexedValues = collect([
-            '$250.00',
+            25000,
             null,
-            '$100.00',
-        ])->map(fn ($value) => $this->fieldtype->preProcessIndex($value))
-            ->sort()
+            10000,
+        ])->map(fn ($value) => [
+            'raw' => $value,
+            'display' => $this->fieldtype->preProcessIndex($value),
+        ])->sortBy('raw')
             ->values()
             ->all();
 
         expect($indexedValues)->toBe([
-            null,
-            10000,
-            25000,
+            ['raw' => null, 'display' => '$0.00'],
+            ['raw' => 10000, 'display' => '$10,000.00'],
+            ['raw' => 25000, 'display' => '$25,000.00'],
         ]);
     });
 
-    it('sorts null index values after numeric values in descending order', function () {
+    it('keeps formatted index values aligned with descending raw subunit sorting', function () {
         $indexedValues = collect([
-            '$250.00',
+            25000,
             null,
-            '$100.00',
-        ])->map(fn ($value) => $this->fieldtype->preProcessIndex($value))
-            ->sortDesc()
+            10000,
+        ])->map(fn ($value) => [
+            'raw' => $value,
+            'display' => $this->fieldtype->preProcessIndex($value),
+        ])->sortByDesc('raw')
             ->values()
             ->all();
 
         expect($indexedValues)->toBe([
-            25000,
-            10000,
-            null,
+            ['raw' => 25000, 'display' => '$25,000.00'],
+            ['raw' => 10000, 'display' => '$10,000.00'],
+            ['raw' => null, 'display' => '$0.00'],
         ]);
+    });
+
+    it('uses locale-aware formatting for index values', function () {
+        Site::shouldReceive('current->lang')->andReturn('de_DE');
+
+        $field = new Field('price', [
+            'type' => 'currency',
+            'currency' => 'EUR',
+        ]);
+
+        $fieldtype = new Currency;
+        $fieldtype->setField($field);
+
+        $formatted = $fieldtype->preProcessIndex(1234);
+
+        expect($formatted)
+            ->toContain(',00')
+            ->toMatch('/€$/u');
+    });
+
+    it('returns a formatted zero index value with preProcessIndex when input is null', function () {
+        expect($this->fieldtype->preProcessIndex(null))->toBe('$0.00');
     });
 });
 
