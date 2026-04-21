@@ -52,7 +52,7 @@ class Currency extends Fieldtype
             return $this->formatted(0);
         }
 
-        return $this->formatted($value);
+        return $this->formattedStoredValue($value);
     }
 
     /**
@@ -64,7 +64,7 @@ class Currency extends Fieldtype
             return $this->formatted(0);
         }
 
-        return $this->formatted($value);
+        return $this->formattedStoredValue($value);
     }
 
     /**
@@ -80,7 +80,7 @@ class Currency extends Fieldtype
      */
     public function augment($value): string
     {
-        return $this->formatted($value);
+        return $this->formattedStoredValue($value);
     }
 
     /**
@@ -124,6 +124,20 @@ class Currency extends Fieldtype
             locale: $this->locale(),
             precision: $this->precision()
         );
+    }
+
+    protected function formattedStoredValue($value): string
+    {
+        return $this->formatted(
+            $this->toDecimalFromSubunit($value)
+        );
+    }
+
+    protected function toDecimalFromSubunit($value): float
+    {
+        $subunitValue = (int) $this->sanitizeDigits($value);
+
+        return $subunitValue / (10 ** $this->precision());
     }
 
     protected function currencies(): DictionaryCollection

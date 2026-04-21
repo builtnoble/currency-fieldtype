@@ -30,7 +30,7 @@ describe('preload method: supplies metadata required by the Vue fieldtype compon
 
         expect($preload['currency'])->toBe('EUR')
             ->and($preload['symbol'])->toBe('€')
-            ->and($fieldtype->augment(1234))->toBe('€1,234.00');
+            ->and($fieldtype->augment(1234))->toBe('€12.34');
 
         Number::useCurrency($original);
     });
@@ -38,7 +38,7 @@ describe('preload method: supplies metadata required by the Vue fieldtype compon
 
 describe('preProcess method: transforms the stored value into the format expected by Vue', function () {
     it('formats values with preProcess', function () {
-        expect($this->fieldtype->preProcess(1234))->toBe('$1,234.00');
+        expect($this->fieldtype->preProcess(1234))->toBe('$12.34');
     });
 
     it('formats zero value with preProcess when value is null', function () {
@@ -48,7 +48,7 @@ describe('preProcess method: transforms the stored value into the format expecte
 
 describe('preProcessIndex method: transforms values for control panel index listings', function () {
     it('returns a formatted index value with preProcessIndex', function () {
-        expect($this->fieldtype->preProcessIndex(1234))->toBe('$1,234.00');
+        expect($this->fieldtype->preProcessIndex(1234))->toBe('$12.34');
     });
 
     it('keeps formatted index values aligned with ascending raw subunit sorting', function () {
@@ -65,8 +65,8 @@ describe('preProcessIndex method: transforms values for control panel index list
 
         expect($indexedValues)->toBe([
             ['raw' => null, 'display' => '$0.00'],
-            ['raw' => 10000, 'display' => '$10,000.00'],
-            ['raw' => 25000, 'display' => '$25,000.00'],
+            ['raw' => 10000, 'display' => '$100.00'],
+            ['raw' => 25000, 'display' => '$250.00'],
         ]);
     });
 
@@ -83,8 +83,8 @@ describe('preProcessIndex method: transforms values for control panel index list
             ->all();
 
         expect($indexedValues)->toBe([
-            ['raw' => 25000, 'display' => '$25,000.00'],
-            ['raw' => 10000, 'display' => '$10,000.00'],
+            ['raw' => 25000, 'display' => '$250.00'],
+            ['raw' => 10000, 'display' => '$100.00'],
             ['raw' => null, 'display' => '$0.00'],
         ]);
     });
@@ -103,7 +103,7 @@ describe('preProcessIndex method: transforms values for control panel index list
         $formatted = $fieldtype->preProcessIndex(1234);
 
         expect($formatted)
-            ->toContain(',00')
+            ->toContain(',34')
             ->toMatch('/€$/u');
     });
 
@@ -124,7 +124,7 @@ describe('process method: transforms the Vue field value into the value that get
 
 describe('augment method: transforms the stored value for Antlers template output', function () {
     it('formats augmented values as currency strings with augment', function () {
-        expect($this->fieldtype->augment(1234))->toBe('$1,234.00');
+        expect($this->fieldtype->augment(1234))->toBe('$12.34');
     });
 
     it('formats with appended symbols for locales that append currency symbols', function () {
@@ -141,7 +141,7 @@ describe('augment method: transforms the stored value for Antlers template outpu
         $formatted = $fieldtype->augment(1234);
 
         expect($formatted)
-            ->toContain(',00')
+            ->toContain(',34')
             ->toMatch('/€$/u')
             ->not->toStartWith('€');
     });
@@ -161,7 +161,7 @@ describe('augment method: transforms the stored value for Antlers template outpu
 
         expect($formatted)
             ->toContain('€')
-            ->toContain(',00')
-            ->not->toContain('.00');
+            ->toContain(',34')
+            ->not->toContain('.34');
     });
 });
