@@ -44,7 +44,7 @@ class Currency extends Fieldtype
 
     /**
      * Return the currency representation of the given value as a string for
-     * the Vue component, e.g. "$1,234.56"
+     * the Vue component, e.g. "$1,234.56".
      */
     public function preProcess($value): ?string
     {

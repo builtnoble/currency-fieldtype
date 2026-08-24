@@ -23,7 +23,7 @@ describe('preload method: supplies metadata required by the Vue fieldtype compon
         Number::useCurrency('EUR');
 
         $field = new Field('price', ['type' => 'currency']);
-        $fieldtype = new Currency;
+        $fieldtype = new Currency();
         $fieldtype->setField($field);
 
         $preload = $fieldtype->preload();
@@ -97,7 +97,7 @@ describe('preProcessIndex method: transforms values for control panel index list
             'currency' => 'EUR',
         ]);
 
-        $fieldtype = new Currency;
+        $fieldtype = new Currency();
         $fieldtype->setField($field);
 
         $formatted = $fieldtype->preProcessIndex(1234);
@@ -135,7 +135,7 @@ describe('augment method: transforms the stored value for Antlers template outpu
             'currency' => 'EUR',
         ]);
 
-        $fieldtype = new Currency;
+        $fieldtype = new Currency();
         $fieldtype->setField($field);
 
         $formatted = $fieldtype->augment(1234);
@@ -154,7 +154,7 @@ describe('augment method: transforms the stored value for Antlers template outpu
             'currency' => 'EUR',
         ]);
 
-        $fieldtype = new Currency;
+        $fieldtype = new Currency();
         $fieldtype->setField($field);
 
         $formatted = $fieldtype->augment(1234);

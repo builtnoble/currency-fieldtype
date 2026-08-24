@@ -21,7 +21,8 @@
     },
     "require-dev": {
         "orchestra/testbench": "^10.8",
-        "pestphp/pest": "^4.6"
+        "pestphp/pest": "^4.6",
+        "laravel/pint": "^1.30"
     },
     "scripts": {
         "test": "pest",
