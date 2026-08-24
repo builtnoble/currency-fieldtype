@@ -2,6 +2,7 @@
 import { Fieldtype } from '@statamic/cms';
 import { Input } from '@statamic/cms/ui';
 import { vMaska } from 'maska/vue';
+import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
 import {
     classifyOffsets,
     computeDecimalPaste,
@@ -15,8 +16,7 @@ import {
     sanitizeDigits,
     splitPastedDecimal,
     toSubunitString,
-} from '@/composables/positionalCurrencyEditing';
-import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
+} from '@/lib/positionalCurrencyEditing';
 
 const emit = defineEmits(Fieldtype.emits);
 const props = defineProps(Fieldtype.props);

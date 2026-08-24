@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { formatNormalizedValue, sanitizeDigits } from '@/composables/positionalCurrencyEditing';
+import { formatNormalizedValue, sanitizeDigits } from '@/lib/positionalCurrencyEditing';
 
 /**
  * Build maska options for currency input using Statamic field metadata.
