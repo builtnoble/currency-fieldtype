@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { reactive } from 'vue';
 
 /**
  * Build maska options for currency input using Statamic field metadata.
@@ -15,7 +15,7 @@ import { reactive } from "vue";
  */
 export const useCurrencyMasking = (
     { currency, locale, precision: decimalPlaces, symbol },
-    { onUnmaskedValue } = {}
+    { onUnmaskedValue } = {},
 ) => {
     // Avoid duplicate onMaska emissions for the same normalized input value.
     let lastUnmaskedValue;
@@ -52,7 +52,7 @@ export const useCurrencyMasking = (
                 return '';
             }
 
-            const normalized = Number(digits) / (10 ** precision);
+            const normalized = Number(digits) / 10 ** precision;
 
             if (symbol) {
                 return currencyFormatter
@@ -79,7 +79,7 @@ export const useCurrencyMasking = (
             }
 
             onUnmaskedValue(unmaskedValue);
-        }
+        },
     });
 
     return { options };

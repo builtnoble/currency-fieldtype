@@ -1,8 +1,8 @@
 <script setup>
-import { Fieldtype } from "@statamic/cms";
-import { Input } from "@statamic/cms/ui";
-import { vMaska } from "maska/vue";
-import { useCurrencyMasking } from "@/composables/useCurrencyMasking";
+import { Fieldtype } from '@statamic/cms';
+import { Input } from '@statamic/cms/ui';
+import { vMaska } from 'maska/vue';
+import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
 
 const emit = defineEmits(Fieldtype.emits);
 const props = defineProps(Fieldtype.props);
