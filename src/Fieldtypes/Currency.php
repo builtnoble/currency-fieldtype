@@ -24,6 +24,7 @@ class Currency extends Fieldtype
                 'options' => $this->currencies()->options(),
                 'default' => Number::defaultCurrency(),
                 'searchable' => true,
+                'required' => true,
                 'width' => 50,
             ],
         ];
@@ -35,7 +36,7 @@ class Currency extends Fieldtype
     public function preload(): array
     {
         return [
-            'currency' => $this->config('currency'),
+            'currency' => $this->currencyCode(),
             'locale' => $this->locale(),
             'precision' => $this->precision(),
             'symbol' => $this->symbol(),
@@ -72,7 +73,7 @@ class Currency extends Fieldtype
      */
     public function process($value): int
     {
-        return (int) $this->sanitizeDigits($value);
+        return $this->parseToSubunit($value);
     }
 
     /**
@@ -84,27 +85,103 @@ class Currency extends Fieldtype
     }
 
     /**
-     * Sanitize the input value by stripping out all non-digit characters,
-     * returning the raw integer value in cents (or the smallest currency unit),
-     * e.g. "123456" => 123456.
+     * Sanitize the input value by stripping out all non-digit characters
+     * other than a leading minus sign, returning the raw signed integer
+     * value in cents (or the smallest currency unit), e.g. "-$12.34" =>
+     * "-1234".
      */
     protected function sanitizeDigits($value): string
     {
-        return preg_replace('/[^\d]/', '', (string) ($value ?? '')) ?? '';
+        $value = (string) ($value ?? '');
+
+        $digits = preg_replace('/[^\d]/', '', $value) ?? '';
+
+        if ($digits === '') {
+            return '';
+        }
+
+        return str_contains($value, '-') ? "-{$digits}" : $digits;
+    }
+
+    /**
+     * Parse a decimal currency value into an integer in the currency's
+     * smallest unit. If a decimal separator is present, the fractional part
+     * is padded or truncated to the configured precision rather than assumed
+     * to already match it, e.g. "12.3" => 1230 for a 2-decimal currency.
+     * Values without a decimal separator are treated as already-sanitized
+     * subunit digits, e.g. "123456" => 123456. A leading minus sign is
+     * preserved, e.g. "-12.3" => -1230.
+     */
+    protected function parseToSubunit($value): int
+    {
+        $value = (string) ($value ?? '');
+
+        $separatorPosition = max(strrpos($value, '.') ?: -1, strrpos($value, ',') ?: -1);
+
+        if ($separatorPosition === -1) {
+            return (int) $this->clampDigits($this->sanitizeDigits($value));
+        }
+
+        $whole = $this->clampDigits($this->sanitizeDigits(substr($value, 0, $separatorPosition)));
+
+        $fraction = str_pad(
+            substr($this->sanitizeDigits(substr($value, $separatorPosition + 1)), 0, $this->precision()),
+            $this->precision(),
+            '0'
+        );
+
+        return (int) (($whole ?: '0') . $fraction);
+    }
+
+    /**
+     * Clamp an optionally-signed digit string to a safe length, avoiding
+     * unreliable behavior when casting extremely large numeric strings to
+     * int (e.g. absurdly long pasted or API-supplied input).
+     */
+    protected function clampDigits(string $digits, int $maxLength = 15): string
+    {
+        $isNegative = str_starts_with($digits, '-');
+
+        $unsigned = substr(ltrim($digits, '-'), 0, $maxLength);
+
+        return $isNegative ? "-{$unsigned}" : $unsigned;
     }
 
     protected function precision(): int
     {
-        $currency = $this->currencies()->get($this->config('currency'));
-
-        return $currency['decimals'] ?? 2;
+        return $this->currencyData()['decimals'] ?? 2;
     }
 
     protected function symbol(): ?string
     {
-        $currency = $this->currencies()->get($this->config('currency'));
+        return $this->currencyData()['symbol'] ?? null;
+    }
 
-        return $currency['symbol'] ?? null;
+    /**
+     * The configured currency's ISO code, falling back to the application
+     * default when the field has none configured or the configured code
+     * does not exist in the currencies dictionary.
+     */
+    protected function currencyCode(): string
+    {
+        $configured = $this->config('currency');
+
+        if (is_string($configured) && $this->currencies()->get($configured) !== null) {
+            return $configured;
+        }
+
+        return Number::defaultCurrency();
+    }
+
+    /**
+     * The resolved currency's dictionary entry, falling back to a generic
+     * 2-decimal definition if even the application default currency cannot
+     * be resolved.
+     */
+    protected function currencyData(): array|\ArrayAccess
+    {
+        return $this->currencies()->get($this->currencyCode())
+            ?? ['decimals' => 2, 'symbol' => null];
     }
 
     /**
@@ -120,7 +197,7 @@ class Currency extends Fieldtype
     {
         return Number::currency(
             number: $value,
-            in: $this->config('currency'),
+            in: $this->currencyCode(),
             locale: $this->locale(),
             precision: $this->precision()
         );

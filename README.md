@@ -11,6 +11,11 @@
 - **Null-safe** — null values are formatted as zero on display (`$0.00`) and return `null` from the index processor, keeping collection listings clean
 - **Stable sorting behavior** — index values are converted to sortable integers, with explicit null sorting behavior for ascending and descending order
 - **Config metadata for Vue** — preload data includes currency, locale, precision, and symbol so the CP field UI has everything it needs
+- **Negative amounts**: a leading minus sign is preserved through input, storage, and display, so refunds, discounts, and other negative adjustments are supported
+
+## Requirements
+
+- PHP's `intl` extension, which Laravel's `Number::currency()` relies on for locale-aware formatting.
 
 ## How to Install
 

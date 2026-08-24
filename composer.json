@@ -1,5 +1,8 @@
 {
     "name": "builtnoble/currency-fieldtype",
+    "description": "A Statamic fieldtype for storing and displaying monetary values as locale-aware, precision-safe integer subunits.",
+    "keywords": ["statamic", "statamic-addon", "fieldtype", "currency", "money"],
+    "license": "MIT",
     "authors": [
         {
             "name": "Amanda Romero",
@@ -17,6 +20,7 @@
         }
     },
     "require": {
+        "ext-intl": "*",
         "statamic/cms": "^6.0"
     },
     "require-dev": {
