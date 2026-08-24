@@ -52,6 +52,21 @@ describe('preload method: supplies metadata required by the Vue fieldtype compon
     });
 });
 
+describe('locale resolution: converts the site lang setting for Intl formatting', function () {
+    it('converts the site locale from underscores to hyphens', function (string $siteLang, string $expected) {
+        Site::shouldReceive('current->lang')->andReturn($siteLang);
+
+        $preload = $this->fieldtype->preload();
+
+        expect($preload['locale'])->toBe($expected);
+    })->with([
+        'en_US' => ['en_US', 'en-US'],
+        'de_DE' => ['de_DE', 'de-DE'],
+        'fr_FR' => ['fr_FR', 'fr-FR'],
+        'already hyphenated' => ['pt-BR', 'pt-BR'],
+    ]);
+});
+
 describe('preProcess method: transforms the stored value into the format expected by Vue', function () {
     it('formats values with preProcess', function () {
         expect($this->fieldtype->preProcess(1234))->toBe('$12.34');
