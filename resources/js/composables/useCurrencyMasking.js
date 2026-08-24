@@ -20,9 +20,14 @@ export const useCurrencyMasking = (
     // Avoid duplicate onMaska emissions for the same normalized input value.
     let lastUnmaskedValue;
 
-    // Strip everything except digits so currency symbols, separators, and
-    // spaces are ignored.
-    const sanitizeDigits = (val) => String(val ?? '').replace(/[^\d]/g, '');
+    // Strip everything except digits (preserving a leading minus sign) so
+    // currency symbols, separators, and spaces are ignored.
+    const sanitizeDigits = (val) => {
+        const raw = String(val ?? '');
+        const digits = raw.replace(/[^\d]/g, '');
+
+        return digits && raw.includes('-') ? `-${digits}` : digits;
+    };
 
     // Normalize configured decimal places once and reuse it everywhere.
     // `number.fraction` controls maska's numeric mask behavior, while
@@ -62,13 +67,13 @@ export const useCurrencyMasking = (
         number: {
             locale,
             fraction: precision,
-            unsigned: true,
+            unsigned: false,
         },
         preProcess: (val) => alignFractionToPrecision(val),
         postProcess: (val) => {
             const digits = sanitizeDigits(val);
 
-            if (!digits) {
+            if (!digits || digits === '-') {
                 return '';
             }
 

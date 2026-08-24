@@ -85,13 +85,22 @@ class Currency extends Fieldtype
     }
 
     /**
-     * Sanitize the input value by stripping out all non-digit characters,
-     * returning the raw integer value in cents (or the smallest currency unit),
-     * e.g. "123456" => 123456.
+     * Sanitize the input value by stripping out all non-digit characters
+     * other than a leading minus sign, returning the raw signed integer
+     * value in cents (or the smallest currency unit), e.g. "-$12.34" =>
+     * "-1234".
      */
     protected function sanitizeDigits($value): string
     {
-        return preg_replace('/[^\d]/', '', (string) ($value ?? '')) ?? '';
+        $value = (string) ($value ?? '');
+
+        $digits = preg_replace('/[^\d]/', '', $value) ?? '';
+
+        if ($digits === '') {
+            return '';
+        }
+
+        return str_contains($value, '-') ? "-{$digits}" : $digits;
     }
 
     /**
@@ -100,7 +109,8 @@ class Currency extends Fieldtype
      * is padded or truncated to the configured precision rather than assumed
      * to already match it, e.g. "12.3" => 1230 for a 2-decimal currency.
      * Values without a decimal separator are treated as already-sanitized
-     * subunit digits, e.g. "123456" => 123456.
+     * subunit digits, e.g. "123456" => 123456. A leading minus sign is
+     * preserved, e.g. "-12.3" => -1230.
      */
     protected function parseToSubunit($value): int
     {
@@ -109,10 +119,10 @@ class Currency extends Fieldtype
         $separatorPosition = max(strrpos($value, '.') ?: -1, strrpos($value, ',') ?: -1);
 
         if ($separatorPosition === -1) {
-            return (int) $this->sanitizeDigits($value);
+            return (int) $this->clampDigits($this->sanitizeDigits($value));
         }
 
-        $whole = $this->sanitizeDigits(substr($value, 0, $separatorPosition));
+        $whole = $this->clampDigits($this->sanitizeDigits(substr($value, 0, $separatorPosition)));
 
         $fraction = str_pad(
             substr($this->sanitizeDigits(substr($value, $separatorPosition + 1)), 0, $this->precision()),
@@ -121,6 +131,20 @@ class Currency extends Fieldtype
         );
 
         return (int) (($whole ?: '0') . $fraction);
+    }
+
+    /**
+     * Clamp an optionally-signed digit string to a safe length, avoiding
+     * unreliable behavior when casting extremely large numeric strings to
+     * int (e.g. absurdly long pasted or API-supplied input).
+     */
+    protected function clampDigits(string $digits, int $maxLength = 15): string
+    {
+        $isNegative = str_starts_with($digits, '-');
+
+        $unsigned = substr(ltrim($digits, '-'), 0, $maxLength);
+
+        return $isNegative ? "-{$unsigned}" : $unsigned;
     }
 
     protected function precision(): int

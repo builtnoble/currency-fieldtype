@@ -172,11 +172,31 @@ describe('process method: transforms the Vue field value into the value that get
 
         expect($fieldtype->process('12.3'))->toBe(12300);
     });
+
+    it('preserves a leading minus sign for negative decimal input', function () {
+        expect($this->fieldtype->process('-$12.34'))->toBe(-1234);
+    });
+
+    it('preserves a leading minus sign for negative input without a decimal separator', function () {
+        expect($this->fieldtype->process('-1234'))->toBe(-1234);
+    });
+
+    it('pads the fraction of a negative under-precision value', function () {
+        expect($this->fieldtype->process('-12.3'))->toBe(-1230);
+    });
+
+    it('clamps an excessively long digit string before casting to an integer', function () {
+        expect($this->fieldtype->process(str_repeat('9', 30) . '.99'))->toBe((int) (str_repeat('9', 15) . '99'));
+    });
 });
 
 describe('augment method: transforms the stored value for Antlers template output', function () {
     it('formats augmented values as currency strings with augment', function () {
         expect($this->fieldtype->augment(1234))->toBe('$12.34');
+    });
+
+    it('formats negative stored values as negative currency strings with augment', function () {
+        expect($this->fieldtype->augment(-1234))->toBe(Number::currency(-12.34, in: 'USD', locale: 'en-US', precision: 2));
     });
 
     it('formats with appended symbols for locales that append currency symbols', function () {
