@@ -21,7 +21,15 @@ export const useCurrencyMasking = (
     let lastUnmaskedValue;
 
     // Strip everything except digits (preserving a leading minus sign) so
-    // currency symbols, separators, and spaces are ignored.
+    // currency symbols, separators, and spaces are ignored. This treats the
+    // whole field as one undifferentiated digit buffer, which is exactly
+    // what makes cents-first entry at the end of the field work but also
+    // why editing isn't decimal-position-aware anywhere else (see the
+    // caret-handling notes in CurrencyFieldtype.vue). The planned hybrid
+    // model keeps this for shift-at-the-end edits; positional edits
+    // elsewhere will need their own value computation that respects where
+    // the decimal point actually is, likely added alongside rather than
+    // replacing this.
     const sanitizeDigits = (val) => {
         const raw = String(val ?? '');
         const digits = raw.replace(/[^\d]/g, '');

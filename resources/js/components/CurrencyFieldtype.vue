@@ -22,6 +22,17 @@ const { options } = useCurrencyMasking(props.meta, {
 // currency symbol. Pinning the caret to the end keeps typing and
 // backspacing operating on the rightmost digit, matching how the masking
 // actually works.
+//
+// KNOWN LIMITATION: this is a stopgap, not real caret support. It forces
+// every edit to the end of the field regardless of where the user clicked
+// or navigated to (with one exception carved out below for removing the
+// leading minus sign), so positional editing — clicking into the middle of
+// the value and expecting an insert/delete right there, with either mouse
+// or keyboard — doesn't work. Planned to be replaced by a hybrid model:
+// keep this shift-at-the-end behavior when the caret is at the very end,
+// and add real decimal-position-aware insert/delete everywhere else. Most
+// of this file (particularly `pinCaretOnKeydown` and
+// `pinCaretOnFocusOrClick`) is expected to change shape when that lands.
 const NON_MUTATING_KEYS = new Set([
     'ArrowLeft',
     'ArrowRight',
@@ -38,7 +49,10 @@ const moveCaretToEnd = (input) => input.setSelectionRange(input.value.length, in
 
 // The minus sign isn't part of the digit buffer, so removing it should
 // toggle the sign at its own position rather than being redirected to the
-// end like a digit edit would be.
+// end like a digit edit would be. This is a narrow, single-character
+// carve-out standing in for the general positional-editing support the
+// hybrid model will add; it can likely be removed once that lands, since
+// sign removal would just be one more positional edit at that point.
 const isRemovingLeadingMinusSign = (event) => {
     const input = event.target;
 
@@ -64,6 +78,14 @@ const pinCaretOnKeydown = (event) => {
 
 // Deferred a frame so it runs after the browser's own default caret
 // placement for the focus/click that triggered it.
+//
+// This is precisely what breaks mouse-driven positional editing today: a
+// click always gets silently overridden back to the end, regardless of
+// where the user actually clicked. Once the hybrid model lands, this
+// should only fire (or only override) when the resulting position isn't
+// meant to support positional editing — most likely this handler goes
+// away entirely, and focus/click are left alone so the browser's native
+// caret placement is trusted directly.
 const pinCaretOnFocusOrClick = (event) => {
     const input = event.target;
 
