@@ -72,7 +72,7 @@ class Currency extends Fieldtype
      */
     public function process($value): int
     {
-        return (int) $this->sanitizeDigits($value);
+        return $this->parseToSubunit($value);
     }
 
     /**
@@ -91,6 +91,35 @@ class Currency extends Fieldtype
     protected function sanitizeDigits($value): string
     {
         return preg_replace('/[^\d]/', '', (string) ($value ?? '')) ?? '';
+    }
+
+    /**
+     * Parse a decimal currency value into an integer in the currency's
+     * smallest unit. If a decimal separator is present, the fractional part
+     * is padded or truncated to the configured precision rather than assumed
+     * to already match it, e.g. "12.3" => 1230 for a 2-decimal currency.
+     * Values without a decimal separator are treated as already-sanitized
+     * subunit digits, e.g. "123456" => 123456.
+     */
+    protected function parseToSubunit($value): int
+    {
+        $value = (string) ($value ?? '');
+
+        $separatorPosition = max(strrpos($value, '.') ?: -1, strrpos($value, ',') ?: -1);
+
+        if ($separatorPosition === -1) {
+            return (int) $this->sanitizeDigits($value);
+        }
+
+        $whole = $this->sanitizeDigits(substr($value, 0, $separatorPosition));
+
+        $fraction = str_pad(
+            substr($this->sanitizeDigits(substr($value, $separatorPosition + 1)), 0, $this->precision()),
+            $this->precision(),
+            '0'
+        );
+
+        return (int) (($whole ?: '0') . $fraction);
     }
 
     protected function precision(): int

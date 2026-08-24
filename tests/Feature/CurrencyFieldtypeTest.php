@@ -120,6 +120,42 @@ describe('process method: transforms the Vue field value into the value that get
     it('stores zero when process value is null', function () {
         expect($this->fieldtype->process(null))->toBe(0);
     });
+
+    it('pads an under-precision fraction to the currency precision', function () {
+        expect($this->fieldtype->process('12.3'))->toBe(1230);
+    });
+
+    it('truncates an over-precision fraction to the currency precision', function () {
+        expect($this->fieldtype->process('12.345'))->toBe(1234);
+    });
+
+    it('treats a value without a decimal separator as already-sanitized subunit digits', function () {
+        expect($this->fieldtype->process('123456'))->toBe(123456);
+    });
+
+    it('discards the fractional part for a zero-decimal currency', function () {
+        $field = new Field('price', [
+            'type' => 'currency',
+            'currency' => 'JPY',
+        ]);
+
+        $fieldtype = new Currency();
+        $fieldtype->setField($field);
+
+        expect($fieldtype->process('12.34'))->toBe(12);
+    });
+
+    it('pads the fraction to a three-decimal currency precision', function () {
+        $field = new Field('price', [
+            'type' => 'currency',
+            'currency' => 'BHD',
+        ]);
+
+        $fieldtype = new Currency();
+        $fieldtype->setField($field);
+
+        expect($fieldtype->process('12.3'))->toBe(12300);
+    });
 });
 
 describe('augment method: transforms the stored value for Antlers template output', function () {

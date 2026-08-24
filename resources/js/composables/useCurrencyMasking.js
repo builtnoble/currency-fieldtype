@@ -30,6 +30,26 @@ export const useCurrencyMasking = (
     // (for example, "123456") into a decimal currency amount ("1234.56").
     const precision = Number.isFinite(Number(decimalPlaces)) ? Number(decimalPlaces) : 2;
 
+    // Align a value's fractional digits to `precision` before it's treated as
+    // raw subunit digits. Typed keystrokes never contain a separator (maska
+    // accumulates raw digits), so this only affects pasted decimal values, e.g.
+    // pasting "12.3" for a 2-decimal currency yields "1230" rather than "123".
+    const alignFractionToPrecision = (val) => {
+        const raw = String(val ?? '');
+        const separatorIndex = Math.max(raw.lastIndexOf('.'), raw.lastIndexOf(','));
+
+        if (separatorIndex === -1) {
+            return sanitizeDigits(raw);
+        }
+
+        const whole = sanitizeDigits(raw.slice(0, separatorIndex));
+        const fraction = sanitizeDigits(raw.slice(separatorIndex + 1))
+            .slice(0, precision)
+            .padEnd(precision, '0');
+
+        return `${whole || '0'}${fraction}`;
+    };
+
     /** @type {Intl.NumberFormat} */
     const currencyFormatter = new Intl.NumberFormat(locale, {
         style: 'currency',
@@ -44,7 +64,7 @@ export const useCurrencyMasking = (
             fraction: precision,
             unsigned: true,
         },
-        preProcess: (val) => sanitizeDigits(val),
+        preProcess: (val) => alignFractionToPrecision(val),
         postProcess: (val) => {
             const digits = sanitizeDigits(val);
 
