@@ -3,6 +3,20 @@ import { Fieldtype } from '@statamic/cms';
 import { Input } from '@statamic/cms/ui';
 import { vMaska } from 'maska/vue';
 import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
+import {
+    classifyOffsets,
+    computeDecimalPaste,
+    computeEdit,
+    deriveStateFromParts,
+    findCaretOffset,
+    formatNormalizedValue,
+    isEndPosition,
+    resolveCaretTarget,
+    resolveKeydownOperation,
+    sanitizeDigits,
+    splitPastedDecimal,
+    toSubunitString,
+} from '@/lib/positionalCurrencyEditing';
 
 const emit = defineEmits(Fieldtype.emits);
 const props = defineProps(Fieldtype.props);
@@ -11,94 +25,187 @@ const { expose, update } = Fieldtype.use(emit, props);
 
 defineExpose(expose);
 
-const { options } = useCurrencyMasking(props.meta, {
+const { options, precision, currencyFormatter, symbol } = useCurrencyMasking(props.meta, {
     onUnmaskedValue: (unmaskedValue) => update(unmaskedValue),
 });
 
-// The displayed value is always fully re-derived from its raw digit count
-// (cents-first entry, e.g. typing "1" turns "$0.00" into "$0.01"), so
-// inserting/deleting a character at an arbitrary caret position produces
-// garbled results, most noticeably when the caret lands before the
-// currency symbol. Pinning the caret to the end keeps typing and
-// backspacing operating on the rightmost digit, matching how the masking
-// actually works.
-//
-// KNOWN LIMITATION: this is a stopgap, not real caret support. It forces
-// every edit to the end of the field regardless of where the user clicked
-// or navigated to (with one exception carved out below for removing the
-// leading minus sign), so positional editing (clicking into the middle of
-// the value and expecting an insert/delete right there, with either mouse
-// or keyboard) doesn't work. Planned to be replaced by a hybrid model:
-// keep this shift-at-the-end behavior when the caret is at the very end,
-// and add real decimal-position-aware insert/delete everywhere else. Most
-// of this file (particularly `pinCaretOnKeydown` and
-// `pinCaretOnFocusOrClick`) is expected to change shape when that lands.
-const NON_MUTATING_KEYS = new Set([
-    'ArrowLeft',
-    'ArrowRight',
-    'ArrowUp',
-    'ArrowDown',
-    'Home',
-    'End',
-    'Tab',
-    'Shift',
-    'Escape',
-]);
+// Classifies the input's current displayed value by re-deriving it from its
+// own digits, matching exactly what postProcess would (re)produce, so the
+// classification always matches what's actually on screen.
+const classifyCurrentValue = (input) => {
+    const digits = sanitizeDigits(input.value);
+    const normalized = digits && digits !== '-' ? Number(digits) / 10 ** precision : 0;
 
-const moveCaretToEnd = (input) => input.setSelectionRange(input.value.length, input.value.length);
-
-// The minus sign isn't part of the digit buffer, so removing it should
-// toggle the sign at its own position rather than being redirected to the
-// end like a digit edit would be. This is a narrow, single-character
-// carve-out standing in for the general positional-editing support the
-// hybrid model will add; it can likely be removed once that lands, since
-// sign removal would just be one more positional edit at that point.
-const isRemovingLeadingMinusSign = (event) => {
-    const input = event.target;
-
-    if (!input.value.startsWith('-') || input.selectionStart !== input.selectionEnd) {
-        return false;
-    }
-
-    return (
-        (event.key === 'Backspace' && input.selectionStart === 1) ||
-        (event.key === 'Delete' && input.selectionStart === 0)
-    );
+    return classifyOffsets(formatNormalizedValue(normalized, currencyFormatter, symbol));
 };
 
-// Repositioned synchronously so the browser's native insert/delete for this
-// same keystroke happens at the end, rather than wherever the caret was.
-const pinCaretOnKeydown = (event) => {
-    if (event.metaKey || event.ctrlKey || NON_MUTATING_KEYS.has(event.key) || isRemovingLeadingMinusSign(event)) {
+// Commits a computed { sign, whole, fraction } state to the input: builds
+// the new display string and caret offset from the same shared formatting
+// helper the field's own postProcess uses, then dispatches a real
+// InputEvent so maska's own onInput/onMaska pipeline re-processes it
+// normally (confirmed idempotent) and update() fires through the existing
+// wiring rather than a separate code path.
+//
+// update() triggers a Vue re-render that reassigns the input's raw DOM
+// value from the fieldtype's underlying model (the unmasked digit string,
+// not the formatted display string) before maska's own directive re-run
+// reformats it back; that intermediate assignment resets the caret to the
+// end. That settles across a couple of microtasks, always before the next
+// paint, so re-applying the caret once more via requestAnimationFrame is a
+// reliable (not timing-fragile) point to land it correctly.
+const applyEdit = (input, state, caretTarget, inputType, data = null) => {
+    const subunitString = toSubunitString(state);
+    const normalized = Number(subunitString) / 10 ** precision;
+    const parts = formatNormalizedValue(normalized, currencyFormatter, symbol);
+    const offsetTypes = classifyOffsets(parts);
+
+    input.value = parts.map((part) => part.value).join('');
+
+    const caretOffset = findCaretOffset(offsetTypes, caretTarget);
+    input.setSelectionRange(caretOffset, caretOffset);
+
+    input.dispatchEvent(new InputEvent('input', { bubbles: true, cancelable: true, inputType, data }));
+
+    requestAnimationFrame(() => {
+        if (document.activeElement === input) {
+            input.setSelectionRange(caretOffset, caretOffset);
+        }
+    });
+};
+
+const handleKeydown = (event) => {
+    if (event.metaKey || event.ctrlKey || event.isComposing) {
         return;
     }
 
-    moveCaretToEnd(event.target);
-};
+    const isDigitKey = /^\d$/.test(event.key);
+    const isDeleteKey = event.key === 'Backspace' || event.key === 'Delete';
 
-// Deferred a frame so it runs after the browser's own default caret
-// placement for the focus/click that triggered it.
-//
-// This is precisely what breaks mouse-driven positional editing today: a
-// click always gets silently overridden back to the end, regardless of
-// where the user actually clicked. Once the hybrid model lands, this
-// should only fire (or only override) when the resulting position isn't
-// meant to support positional editing. Most likely this handler goes
-// away entirely, and focus/click are left alone so the browser's native
-// caret placement is trusted directly.
-const pinCaretOnFocusOrClick = (event) => {
+    if (!isDigitKey && !isDeleteKey) {
+        return;
+    }
+
     const input = event.target;
 
-    requestAnimationFrame(() => moveCaretToEnd(input));
+    // A genuinely empty field has nothing to be positional about (and
+    // classifyCurrentValue's digits-based reformatting would otherwise
+    // synthesize a "$0.00" representation that doesn't match the real,
+    // blank DOM value); defer to the existing shift-mode pipeline.
+    if (input.value === '') {
+        return;
+    }
+
+    // Selection replacement is out of scope for positional editing; defer
+    // to the existing shift-mode pipeline.
+    if (input.selectionStart !== input.selectionEnd) {
+        return;
+    }
+
+    const offsetTypes = classifyCurrentValue(input);
+    const caret = input.selectionStart;
+
+    if (isEndPosition(offsetTypes, caret)) {
+        return;
+    }
+
+    const operation = resolveKeydownOperation({ key: event.key, offsetTypes, caret });
+
+    // A positional context with no defined effect (e.g. Backspace next to
+    // the currency symbol): block the browser's own attempt rather than
+    // letting it insert/delete somewhere nonsensical.
+    event.preventDefault();
+
+    if (!operation) {
+        return;
+    }
+
+    const digits = sanitizeDigits(input.value);
+    const normalized = digits && digits !== '-' ? Number(digits) / 10 ** precision : 0;
+    const currentParts = formatNormalizedValue(normalized, currencyFormatter, symbol);
+    const currentState = deriveStateFromParts(offsetTypes, currentParts);
+    const result = computeEdit(currentState, operation, precision);
+
+    const inputType =
+        operation.type === 'insert-digit'
+            ? 'insertText'
+            : operation.type === 'delete-before'
+              ? 'deleteContentBackward'
+              : 'deleteContentForward';
+
+    applyEdit(
+        input,
+        { sign: result.sign, whole: result.whole, fraction: result.fraction },
+        result.caret,
+        inputType,
+        operation.type === 'insert-digit' ? operation.digit : null,
+    );
+};
+
+const handlePaste = (event) => {
+    const input = event.target;
+
+    if (input.value === '') {
+        return;
+    }
+
+    if (input.selectionStart !== input.selectionEnd) {
+        return;
+    }
+
+    const offsetTypes = classifyCurrentValue(input);
+    const caret = input.selectionStart;
+
+    if (isEndPosition(offsetTypes, caret)) {
+        return;
+    }
+
+    const pastedText = event.clipboardData?.getData('text') ?? '';
+    const decimalSplit = splitPastedDecimal(pastedText);
+    const pastedDigits = pastedText.replace(/[^\d]/g, '');
+
+    event.preventDefault();
+
+    if (!pastedDigits) {
+        return;
+    }
+
+    const digits = sanitizeDigits(input.value);
+    const normalized = digits && digits !== '-' ? Number(digits) / 10 ** precision : 0;
+    const currentParts = formatNormalizedValue(normalized, currencyFormatter, symbol);
+    const currentState = deriveStateFromParts(offsetTypes, currentParts);
+    const target = resolveCaretTarget(offsetTypes, caret);
+
+    let result;
+
+    if (decimalSplit) {
+        // The pasted text has its own decimal point: split it at the caret
+        // rather than inserting every digit sequentially, so pasting
+        // "192.34" respects its own whole/fraction structure instead of
+        // being flattened into one big whole-part digit run.
+        result = computeDecimalPaste(currentState, decimalSplit, target, precision);
+    } else {
+        let state = currentState;
+        let runningTarget = target;
+
+        for (const digit of pastedDigits) {
+            const stepResult = computeEdit(state, { type: 'insert-digit', digit, target: runningTarget }, precision);
+            state = { sign: stepResult.sign, whole: stepResult.whole, fraction: stepResult.fraction };
+            runningTarget = stepResult.caret;
+        }
+
+        result = { ...state, caret: runningTarget };
+    }
+
+    applyEdit(
+        input,
+        { sign: result.sign, whole: result.whole, fraction: result.fraction },
+        result.caret,
+        'insertFromPaste',
+        pastedDigits,
+    );
 };
 </script>
 
 <template>
-    <Input
-        v-maska="options"
-        :model-value="value"
-        @focus="pinCaretOnFocusOrClick"
-        @click="pinCaretOnFocusOrClick"
-        @keydown="pinCaretOnKeydown"
-    />
+    <Input v-maska="options" :model-value="value" @keydown="handleKeydown" @paste="handlePaste" />
 </template>

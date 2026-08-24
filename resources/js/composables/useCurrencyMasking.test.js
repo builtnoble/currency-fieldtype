@@ -24,6 +24,47 @@ describe('precision resolution: normalizes the configured decimal places', () =>
     });
 });
 
+describe('locale handling: passes the configured locale through to formatting', () => {
+    it('exposes the configured locale to maska for its own live-typing formatting', () => {
+        const { options } = buildMasking({ locale: 'de-DE' });
+
+        expect(options.number.locale).toBe('de-DE');
+    });
+
+    it('formats with a comma decimal separator for a comma-decimal locale', () => {
+        const { options } = buildMasking({ locale: 'de-DE', currency: 'EUR' });
+
+        const formatted = options.postProcess('1234');
+
+        expect(formatted).toContain(',34');
+        expect(formatted).not.toContain('.34');
+    });
+
+    it('places a suffixed currency symbol for a locale that appends it', () => {
+        const { options } = buildMasking({ locale: 'de-DE', currency: 'EUR' });
+
+        const formatted = options.postProcess('1234');
+
+        expect(formatted).toMatch(/€$/u);
+        expect(formatted).not.toMatch(/^€/u);
+    });
+
+    it('returns the currencyFormatter configured with the given locale', () => {
+        const { currencyFormatter } = buildMasking({ locale: 'de-DE', currency: 'EUR' });
+
+        expect(currencyFormatter.resolvedOptions().locale).toBe('de-DE');
+    });
+
+    it('formats negative amounts correctly for a comma-decimal locale', () => {
+        const { options } = buildMasking({ locale: 'de-DE', currency: 'EUR' });
+
+        const formatted = options.postProcess('-1234');
+
+        expect(formatted).toContain('-');
+        expect(formatted).toContain(',34');
+    });
+});
+
 describe('preProcess: strips the current field value to raw digits', () => {
     // preProcess receives the full current input value on every keystroke
     // (not just the newly typed character), and that value always contains
