@@ -24,35 +24,31 @@ describe('precision resolution: normalizes the configured decimal places', () =>
     });
 });
 
-describe('preProcess: aligns fractional digits to the configured precision', () => {
-    it('leaves a value without a decimal separator untouched (already-sanitized digits)', () => {
+describe('preProcess: strips the current field value to raw digits', () => {
+    // preProcess receives the full current input value on every keystroke
+    // (not just the newly typed character), and that value always contains
+    // a decimal point once the field is non-empty (e.g. "$0.00"). Splitting
+    // on that separator to align a fraction, as if it were a one-off pasted
+    // value, misinterprets that per-keystroke value and breaks cents-first
+    // typing (see git history on this file for the regression it caused).
+    // Plain digit-stripping is what lets maska's own accumulation drive
+    // cents-first entry correctly.
+    it('strips symbols, separators, and grouping to raw digits', () => {
         const { options } = buildMasking();
 
-        expect(options.preProcess('1234')).toBe('1234');
+        expect(options.preProcess('$1,234.56')).toBe('123456');
     });
 
-    it('pads an under-precision fraction', () => {
+    it('preserves a leading minus sign', () => {
         const { options } = buildMasking();
 
-        expect(options.preProcess('12.3')).toBe('1230');
+        expect(options.preProcess('-$12.34')).toBe('-1234');
     });
 
-    it('truncates an over-precision fraction', () => {
+    it('returns an empty string for empty input', () => {
         const { options } = buildMasking();
 
-        expect(options.preProcess('12.345')).toBe('1234');
-    });
-
-    it('preserves a leading minus sign with a decimal separator', () => {
-        const { options } = buildMasking();
-
-        expect(options.preProcess('-12.3')).toBe('-1230');
-    });
-
-    it('preserves a leading minus sign without a decimal separator', () => {
-        const { options } = buildMasking();
-
-        expect(options.preProcess('-1234')).toBe('-1234');
+        expect(options.preProcess('')).toBe('');
     });
 });
 
