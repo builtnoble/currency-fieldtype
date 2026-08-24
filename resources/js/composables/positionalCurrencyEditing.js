@@ -289,6 +289,61 @@ export const computeEdit = (state, operation, precision) => {
 export const toSubunitString = ({ sign, whole, fraction }) => `${sign}${whole}${fraction}`;
 
 /**
+ * Split arbitrary (unformatted) pasted text into whole/fraction digit
+ * strings by its last "." or "," character, treated as the decimal
+ * separator. Mirrors how the server (Currency::parseToSubunit) interprets
+ * arbitrary decimal-style input, so a paste containing its own decimal
+ * point is split the same way client- and server-side. Returns null if the
+ * pasted text has no decimal separator at all (a plain digit sequence,
+ * handled by repeated insert-digit operations instead).
+ *
+ * @param {string} text
+ * @returns {{ whole: string, fraction: string, isNegative: boolean } | null}
+ */
+export const splitPastedDecimal = (text) => {
+    const raw = String(text ?? '');
+    const separatorIndex = Math.max(raw.lastIndexOf('.'), raw.lastIndexOf(','));
+
+    if (separatorIndex === -1) {
+        return null;
+    }
+
+    return {
+        whole: raw.slice(0, separatorIndex).replace(/\D/g, ''),
+        fraction: raw.slice(separatorIndex + 1).replace(/\D/g, ''),
+        isNegative: raw.includes('-'),
+    };
+};
+
+/**
+ * Apply a decimal-splitting paste to the current state: the pasted whole
+ * digits are inserted into the whole section at the target position (or
+ * appended to the end of the whole if the caret was in the fraction, since
+ * there's no meaningful position within the whole once past the decimal
+ * point), and the fraction is replaced entirely by the pasted fraction
+ * (padded/truncated to precision) rather than merged positionally, since
+ * the pasted value's fraction represents the intended new fraction, not an
+ * insertion into the old one.
+ *
+ * @param {{ sign: ''|'-', whole: string, fraction: string }} state
+ * @param {{ whole: string, fraction: string, isNegative: boolean }} split
+ * @param {{ section: 'whole'|'fraction', digitIndex: number }} target
+ * @param {number} precision
+ */
+export const computeDecimalPaste = (state, split, target, precision) => {
+    const insertIndex = target.section === 'whole' ? target.digitIndex : state.whole.length;
+    const whole = state.whole.slice(0, insertIndex) + split.whole + state.whole.slice(insertIndex);
+    const fraction = split.fraction.slice(0, precision).padEnd(precision, '0');
+
+    return {
+        sign: split.isNegative ? '-' : state.sign,
+        whole,
+        fraction,
+        caret: { section: 'whole', digitIndex: insertIndex + split.whole.length },
+    };
+};
+
+/**
  * Inverse of resolveCaretTarget: given the classification of a *newly*
  * formatted value and a { section, digitIndex } target, find the DOM
  * offset the caret should be placed at (immediately before the

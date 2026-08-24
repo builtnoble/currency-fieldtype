@@ -4,6 +4,7 @@ import { Input } from '@statamic/cms/ui';
 import { vMaska } from 'maska/vue';
 import {
     classifyOffsets,
+    computeDecimalPaste,
     computeEdit,
     deriveStateFromParts,
     findCaretOffset,
@@ -12,6 +13,7 @@ import {
     resolveCaretTarget,
     resolveKeydownOperation,
     sanitizeDigits,
+    splitPastedDecimal,
     toSubunitString,
 } from '@/composables/positionalCurrencyEditing';
 import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
@@ -157,7 +159,9 @@ const handlePaste = (event) => {
         return;
     }
 
-    const pastedDigits = (event.clipboardData?.getData('text') ?? '').replace(/[^\d]/g, '');
+    const pastedText = event.clipboardData?.getData('text') ?? '';
+    const decimalSplit = splitPastedDecimal(pastedText);
+    const pastedDigits = pastedText.replace(/[^\d]/g, '');
 
     event.preventDefault();
 
@@ -168,17 +172,37 @@ const handlePaste = (event) => {
     const digits = sanitizeDigits(input.value);
     const normalized = digits && digits !== '-' ? Number(digits) / 10 ** precision : 0;
     const currentParts = formatNormalizedValue(normalized, currencyFormatter, symbol);
+    const currentState = deriveStateFromParts(offsetTypes, currentParts);
+    const target = resolveCaretTarget(offsetTypes, caret);
 
-    let state = deriveStateFromParts(offsetTypes, currentParts);
-    let target = resolveCaretTarget(offsetTypes, caret);
+    let result;
 
-    for (const digit of pastedDigits) {
-        const result = computeEdit(state, { type: 'insert-digit', digit, target }, precision);
-        state = { sign: result.sign, whole: result.whole, fraction: result.fraction };
-        target = result.caret;
+    if (decimalSplit) {
+        // The pasted text has its own decimal point: split it at the caret
+        // rather than inserting every digit sequentially, so pasting
+        // "192.34" respects its own whole/fraction structure instead of
+        // being flattened into one big whole-part digit run.
+        result = computeDecimalPaste(currentState, decimalSplit, target, precision);
+    } else {
+        let state = currentState;
+        let runningTarget = target;
+
+        for (const digit of pastedDigits) {
+            const stepResult = computeEdit(state, { type: 'insert-digit', digit, target: runningTarget }, precision);
+            state = { sign: stepResult.sign, whole: stepResult.whole, fraction: stepResult.fraction };
+            runningTarget = stepResult.caret;
+        }
+
+        result = { ...state, caret: runningTarget };
     }
 
-    applyEdit(input, state, target, 'insertFromPaste', pastedDigits);
+    applyEdit(
+        input,
+        { sign: result.sign, whole: result.whole, fraction: result.fraction },
+        result.caret,
+        'insertFromPaste',
+        pastedDigits,
+    );
 };
 </script>
 

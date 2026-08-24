@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     classifyAdjacentChar,
     classifyOffsets,
+    computeDecimalPaste,
     computeEdit,
     deriveStateFromParts,
     findCaretOffset,
@@ -10,6 +11,7 @@ import {
     resolveCaretTarget,
     resolveKeydownOperation,
     sanitizeDigits,
+    splitPastedDecimal,
     toSubunitString,
 } from './positionalCurrencyEditing';
 
@@ -532,5 +534,108 @@ describe('findCaretOffset: inverse of resolveCaretTarget against a new value', (
         const target = findCaretOffset(offsets, { section: 'fraction', digitIndex: 0 });
 
         expect(target).toBe(offsets.length);
+    });
+});
+
+describe('splitPastedDecimal: splits pasted text on its own decimal separator', () => {
+    it('splits a plain decimal string', () => {
+        expect(splitPastedDecimal('192.34')).toEqual({ whole: '192', fraction: '34', isNegative: false });
+    });
+
+    it('detects a negative sign anywhere in the pasted text', () => {
+        expect(splitPastedDecimal('-192.34')).toEqual({ whole: '192', fraction: '34', isNegative: true });
+    });
+
+    it('strips non-digit characters from each side', () => {
+        expect(splitPastedDecimal('$1,192.34')).toEqual({ whole: '1192', fraction: '34', isNegative: false });
+    });
+
+    it('splits on the last separator when a comma is used as the decimal point', () => {
+        expect(splitPastedDecimal('1.192,34')).toEqual({ whole: '1192', fraction: '34', isNegative: false });
+    });
+
+    it('returns null for a plain digit sequence with no separator', () => {
+        expect(splitPastedDecimal('19234')).toBe(null);
+    });
+});
+
+describe('computeDecimalPaste: splits a decimal paste at the caret position', () => {
+    it('inserts the pasted whole digits and replaces the fraction (caret before the decimal)', () => {
+        const state = { sign: '', whole: '1', fraction: '00' };
+        const split = { whole: '192', fraction: '34', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2)).toEqual({
+            sign: '',
+            whole: '1192',
+            fraction: '34',
+            caret: { section: 'whole', digitIndex: 4 },
+        });
+    });
+
+    it('inserts the pasted whole digits at a position within an existing whole part', () => {
+        const state = { sign: '', whole: '12', fraction: '34' };
+        const split = { whole: '9', fraction: '56', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2)).toEqual({
+            sign: '',
+            whole: '192',
+            fraction: '56',
+            caret: { section: 'whole', digitIndex: 2 },
+        });
+    });
+
+    it('appends the pasted whole digits to the end of whole when the caret is in the fraction', () => {
+        const state = { sign: '', whole: '12', fraction: '34' };
+        const split = { whole: '9', fraction: '56', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'fraction', digitIndex: 1 }, 2)).toEqual({
+            sign: '',
+            whole: '129',
+            fraction: '56',
+            caret: { section: 'whole', digitIndex: 3 },
+        });
+    });
+
+    it('pads a pasted fraction shorter than the configured precision', () => {
+        const state = { sign: '', whole: '1', fraction: '00' };
+        const split = { whole: '2', fraction: '3', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2)).toEqual({
+            sign: '',
+            whole: '12',
+            fraction: '30',
+            caret: { section: 'whole', digitIndex: 2 },
+        });
+    });
+
+    it('truncates a pasted fraction longer than the configured precision', () => {
+        const state = { sign: '', whole: '1', fraction: '00' };
+        const split = { whole: '2', fraction: '345', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2)).toEqual({
+            sign: '',
+            whole: '12',
+            fraction: '34',
+            caret: { section: 'whole', digitIndex: 2 },
+        });
+    });
+
+    it('forces the sign negative when the pasted text has its own minus sign', () => {
+        const state = { sign: '', whole: '1', fraction: '00' };
+        const split = { whole: '2', fraction: '34', isNegative: true };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2)).toEqual({
+            sign: '-',
+            whole: '12',
+            fraction: '34',
+            caret: { section: 'whole', digitIndex: 2 },
+        });
+    });
+
+    it('leaves the existing sign untouched when the pasted text has no minus sign', () => {
+        const state = { sign: '-', whole: '1', fraction: '00' };
+        const split = { whole: '2', fraction: '34', isNegative: false };
+
+        expect(computeDecimalPaste(state, split, { section: 'whole', digitIndex: 1 }, 2).sign).toBe('-');
     });
 });
