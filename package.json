@@ -2,7 +2,8 @@
     "private": true,
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "test": "vitest run"
     },
     "dependencies": {
         "@statamic/cms": "file:./vendor/statamic/cms/resources/dist-package",
@@ -11,6 +12,7 @@
     "devDependencies": {
         "@biomejs/biome": "^2.2.2",
         "laravel-vite-plugin": "^1.2.0",
-        "vite": "^6.3.4"
+        "vite": "^6.3.4",
+        "vitest": "^3.2.7"
     }
 }
