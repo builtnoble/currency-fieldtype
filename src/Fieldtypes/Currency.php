@@ -24,6 +24,7 @@ class Currency extends Fieldtype
                 'options' => $this->currencies()->options(),
                 'default' => Number::defaultCurrency(),
                 'searchable' => true,
+                'required' => true,
                 'width' => 50,
             ],
         ];
@@ -35,7 +36,7 @@ class Currency extends Fieldtype
     public function preload(): array
     {
         return [
-            'currency' => $this->config('currency'),
+            'currency' => $this->currencyCode(),
             'locale' => $this->locale(),
             'precision' => $this->precision(),
             'symbol' => $this->symbol(),
@@ -124,16 +125,39 @@ class Currency extends Fieldtype
 
     protected function precision(): int
     {
-        $currency = $this->currencies()->get($this->config('currency'));
-
-        return $currency['decimals'] ?? 2;
+        return $this->currencyData()['decimals'] ?? 2;
     }
 
     protected function symbol(): ?string
     {
-        $currency = $this->currencies()->get($this->config('currency'));
+        return $this->currencyData()['symbol'] ?? null;
+    }
 
-        return $currency['symbol'] ?? null;
+    /**
+     * The configured currency's ISO code, falling back to the application
+     * default when the field has none configured or the configured code
+     * does not exist in the currencies dictionary.
+     */
+    protected function currencyCode(): string
+    {
+        $configured = $this->config('currency');
+
+        if (is_string($configured) && $this->currencies()->get($configured) !== null) {
+            return $configured;
+        }
+
+        return Number::defaultCurrency();
+    }
+
+    /**
+     * The resolved currency's dictionary entry, falling back to a generic
+     * 2-decimal definition if even the application default currency cannot
+     * be resolved.
+     */
+    protected function currencyData(): array|\ArrayAccess
+    {
+        return $this->currencies()->get($this->currencyCode())
+            ?? ['decimals' => 2, 'symbol' => null];
     }
 
     /**
@@ -149,7 +173,7 @@ class Currency extends Fieldtype
     {
         return Number::currency(
             number: $value,
-            in: $this->config('currency'),
+            in: $this->currencyCode(),
             locale: $this->locale(),
             precision: $this->precision()
         );

@@ -34,6 +34,22 @@ describe('preload method: supplies metadata required by the Vue fieldtype compon
 
         Number::useCurrency($original);
     });
+
+    it('falls back to the default currency when the configured ISO code is invalid', function () {
+        $field = new Field('price', [
+            'type' => 'currency',
+            'currency' => 'not-a-real-currency',
+        ]);
+
+        $fieldtype = new Currency();
+        $fieldtype->setField($field);
+
+        $preload = $fieldtype->preload();
+
+        expect($preload['currency'])->toBe(Number::defaultCurrency())
+            ->and($preload['precision'])->toBe(2)
+            ->and($preload['symbol'])->toBe('$');
+    });
 });
 
 describe('preProcess method: transforms the stored value into the format expected by Vue', function () {
