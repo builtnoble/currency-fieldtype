@@ -22,7 +22,7 @@ abstract class TestCase extends AddonTestCase
             'currency' => 'USD',
         ]);
 
-        $this->fieldtype = new Currency;
+        $this->fieldtype = new Currency();
         $this->fieldtype->setField($field);
     }
 }

@@ -1,4 +1,5 @@
-import { reactive } from "vue";
+import { reactive } from 'vue';
+import { formatNormalizedValue, sanitizeDigits } from '@/lib/positionalCurrencyEditing';
 
 /**
  * Build maska options for currency input using Statamic field metadata.
@@ -8,21 +9,21 @@ import { reactive } from "vue";
  * custom symbol is provided, it replaces only the currency token via `formatToParts()`
  * so locale-specific symbol position and spacing are preserved.
  *
+ * Also returns `precision`, `currencyFormatter`, and `symbol` alongside `options`
+ * so callers (CurrencyFieldtype.vue) can drive decimal-position-aware editing
+ * without re-deriving them.
+ *
  * @param {{ currency: string, locale: string, precision?: number|string, symbol?: string }} meta
  * @param {{ onUnmaskedValue?: (unmaskedValue: string) => void }} [callbacks]
  *
- * @returns {{ options: import('vue').UnwrapNestedRefs<object> }}
+ * @returns {{ options: import('vue').UnwrapNestedRefs<object>, precision: number, currencyFormatter: Intl.NumberFormat, symbol?: string }}
  */
 export const useCurrencyMasking = (
     { currency, locale, precision: decimalPlaces, symbol },
-    { onUnmaskedValue } = {}
+    { onUnmaskedValue } = {},
 ) => {
     // Avoid duplicate onMaska emissions for the same normalized input value.
     let lastUnmaskedValue;
-
-    // Strip everything except digits so currency symbols, separators, and
-    // spaces are ignored.
-    const sanitizeDigits = (val) => String(val ?? '').replace(/[^\d]/g, '');
 
     // Normalize configured decimal places once and reuse it everywhere.
     // `number.fraction` controls maska's numeric mask behavior, while
@@ -42,26 +43,21 @@ export const useCurrencyMasking = (
         number: {
             locale,
             fraction: precision,
-            unsigned: true,
+            unsigned: false,
         },
         preProcess: (val) => sanitizeDigits(val),
         postProcess: (val) => {
             const digits = sanitizeDigits(val);
 
-            if (!digits) {
+            if (!digits || digits === '-') {
                 return '';
             }
 
-            const normalized = Number(digits) / (10 ** precision);
+            const normalized = Number(digits) / 10 ** precision;
 
-            if (symbol) {
-                return currencyFormatter
-                    .formatToParts(normalized)
-                    .map((part) => (part.type === 'currency' ? symbol : part.value))
-                    .join('');
-            }
-
-            return currencyFormatter.format(normalized);
+            return formatNormalizedValue(normalized, currencyFormatter, symbol)
+                .map((part) => part.value)
+                .join('');
         },
         onMaska: (eventOrDetail) => {
             const detail = eventOrDetail?.detail ?? eventOrDetail;
@@ -79,8 +75,8 @@ export const useCurrencyMasking = (
             }
 
             onUnmaskedValue(unmaskedValue);
-        }
+        },
     });
 
-    return { options };
+    return { options, precision, currencyFormatter, symbol };
 };
