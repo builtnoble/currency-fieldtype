@@ -55,7 +55,7 @@ Values are stored as plain integers representing the smallest unit of the select
 When a stored value is augmented for use in Antlers templates, it is formatted as a locale-aware currency string:
 
 ```antlers
-{{ price }}
+{{ input_name }}
 {{# Output: $1,234.56 #}}
 ```
 
