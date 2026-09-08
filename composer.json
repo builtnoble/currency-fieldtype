@@ -51,7 +51,7 @@
     "extra": {
         "statamic": {
             "name": "Currency Fieldtype",
-            "description": "Currency Fieldtype addon",
+            "description": "A Statamic fieldtype for storing and displaying monetary values as locale-aware, precision-safe integer subunits.",
             "editions": ["free"]
         },
         "laravel": {
