@@ -52,16 +52,6 @@ Pint's rules live in `pint.json` and Biome's live in `biome.json` — check thos
 
 Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, etc.). Commits authored by the maintainer don't include AI co-author trailers — that's this project's house style for its own commits, not a requirement placed on your commits or tooling.
 
-## Recommended branch protection
-
-Once this repository is public, the following branch protection rules are recommended for both `main` and `develop`:
-
-- Require a pull request before merging (a required approving review count of 0 is acceptable for a solo maintainer — raise it as the contributor base grows)
-- Require status checks to pass before merging: `PHP 8.3`, `PHP 8.4`, `phpstan`, `js-tests`, `lint-code-styling`
-- Require branches to be up to date before merging
-- Do not allow force pushes
-- Do not allow branch deletion
-
 ## Releasing
 
 1. Open a PR merging `develop` into `main`.
