@@ -1,6 +1,10 @@
 # Currency Fieldtype
 
+<!-- statamic:hide -->
+
 > A Statamic fieldtype for storing and displaying monetary values. Values are saved as integers in the smallest currency unit (e.g. cents for USD), formatted for display using the current site locale, and fully configurable per field via ISO currency code.
+
+<!-- /statamic:hide -->
 
 ## Features
 
