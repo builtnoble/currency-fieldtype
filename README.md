@@ -101,21 +101,14 @@ Formatting honors the current site locale. For example, a locale like `de_DE` ma
 - empty values saved through the field sort as `0`
 - unset legacy values that surface as `null` are displayed as `0.00` in the index
 
-## Running Tests
+## Development
 
 ```bash
-./vendor/bin/pest
+composer test          # Pest (PHP)
+composer test:feature  # Pest, feature-grouped only
+composer lint           # Pint, check only
+composer analyse        # PHPStan
+composer check           # lint + analyse + test, all at once
 ```
 
-Run only feature-grouped tests:
-
-```bash
-./vendor/bin/pest --group="feature"
-```
-
-Or via Composer scripts:
-
-```bash
-composer test
-composer test:feature
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development setup and workflow.
