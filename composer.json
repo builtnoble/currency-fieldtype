@@ -20,17 +20,27 @@
         }
     },
     "require": {
+        "php": "^8.3",
         "ext-intl": "*",
         "statamic/cms": "^6.0"
     },
     "require-dev": {
+        "larastan/larastan": "^3.9",
+        "laravel/pint": "^1.30",
         "orchestra/testbench": "^10.8",
-        "pestphp/pest": "^4.6",
-        "laravel/pint": "^1.30"
+        "pestphp/pest": "^4.6"
     },
     "scripts": {
         "test": "pest",
-        "test:feature": "pest --group=\"feature\""
+        "test:feature": "pest --group=\"feature\"",
+        "lint": "pint --test",
+        "format": "pint",
+        "analyse": "phpstan analyse",
+        "check": ["@lint", "@analyse", "@test"]
+    },
+    "support": {
+        "issues": "https://github.com/builtnoble/currency-fieldtype/issues",
+        "source": "https://github.com/builtnoble/currency-fieldtype"
     },
     "config": {
         "allow-plugins": {
@@ -41,13 +51,11 @@
     "extra": {
         "statamic": {
             "name": "Currency Fieldtype",
-            "description": "Currency Fieldtype addon",
+            "description": "A Statamic fieldtype for storing and displaying monetary values as locale-aware, precision-safe integer subunits.",
             "editions": ["free"]
         },
         "laravel": {
-            "providers": [
-                "Builtnoble\\CurrencyFieldtype\\ServiceProvider"
-            ]
+            "providers": ["Builtnoble\\CurrencyFieldtype\\ServiceProvider"]
         }
     },
     "minimum-stability": "dev",
