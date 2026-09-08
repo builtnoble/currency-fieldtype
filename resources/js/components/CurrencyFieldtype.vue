@@ -1,6 +1,8 @@
 <script setup>
 import { Fieldtype } from '@statamic/cms';
+// biome-ignore lint/correctness/noUnusedImports: used in <template> as <Input>, which Biome's Vue support doesn't detect
 import { Input } from '@statamic/cms/ui';
+// biome-ignore lint/correctness/noUnusedImports: used in <template> as the v-maska directive, which Biome's Vue support doesn't detect
 import { vMaska } from 'maska/vue';
 import { useCurrencyMasking } from '@/composables/useCurrencyMasking';
 import {
@@ -25,6 +27,7 @@ const { expose, update } = Fieldtype.use(emit, props);
 
 defineExpose(expose);
 
+// biome-ignore lint/correctness/noUnusedVariables: `options` is used in <template> as the v-maska binding, which Biome's Vue support doesn't detect
 const { options, precision, currencyFormatter, symbol } = useCurrencyMasking(props.meta, {
     onUnmaskedValue: (unmaskedValue) => update(unmaskedValue),
 });
@@ -73,6 +76,7 @@ const applyEdit = (input, state, caretTarget, inputType, data = null) => {
     });
 };
 
+// biome-ignore lint/correctness/noUnusedVariables: used in <template> as @keydown, which Biome's Vue support doesn't detect
 const handleKeydown = (event) => {
     if (event.metaKey || event.ctrlKey || event.isComposing) {
         return;
@@ -141,6 +145,7 @@ const handleKeydown = (event) => {
     );
 };
 
+// biome-ignore lint/correctness/noUnusedVariables: used in <template> as @paste, which Biome's Vue support doesn't detect
 const handlePaste = (event) => {
     const input = event.target;
 

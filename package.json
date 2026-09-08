@@ -3,7 +3,9 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "test": "vitest run"
+        "test": "vitest run",
+        "lint": "biome check .",
+        "format": "biome check --write ."
     },
     "dependencies": {
         "@statamic/cms": "file:./vendor/statamic/cms/resources/dist-package",

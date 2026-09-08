@@ -1,0 +1,11 @@
+<?php
+
+namespace Statamic\Providers;
+
+class AddonServiceProvider
+{
+    /**
+     * @var array{input: list<string>, publicDirectory?: string, buildDirectory?: string, hotFile?: string}|list<string>|null
+     */
+    protected $vite = null;
+}
