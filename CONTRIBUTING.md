@@ -24,18 +24,18 @@ npm install
 ```bash
 composer test          # Pest (PHP)
 composer test:feature  # Pest, feature-grouped only
-npm run test            # Vitest (JS)
+npm run test           # Vitest (JS)
 ```
 
 ## Code style and static analysis
 
 ```bash
-composer lint      # Pint, check only (CI mode)
-composer format     # Pint, auto-fix
-composer analyse    # PHPStan (via Larastan)
-npm run lint         # Biome, check only
-npm run format       # Biome, auto-fix
-composer check       # lint + analyse + test, all at once
+composer lint     # Pint, check only (CI mode)
+composer format   # Pint, auto-fix
+composer analyse  # PHPStan (via Larastan)
+npm run lint      # Biome, check only
+npm run format    # Biome, auto-fix
+composer check    # lint + analyse + test, all at once
 ```
 
 Pint's rules live in `pint.json` and Biome's live in `biome.json` — check those files rather than guessing at style, and don't hand-copy config from other repos.
