@@ -56,4 +56,17 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:
 
 1. Open a PR merging `develop` into `main`.
 2. Once merged, tag the release on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`
-3. Create the GitHub release with auto-generated notes: `gh release create vX.Y.Z --generate-notes` — this picks up the label categorization from `.github/release.yml` automatically.
+3. Generate the release notes, strip the "by @username" attribution and "New Contributors" section GitHub always adds (there's no `.github/release.yml` option to suppress these — this project is maintained solo, so per-line author credit is just noise), then publish:
+
+   ```bash
+   gh api repos/builtnoble/currency-fieldtype/releases/generate-notes \
+     -f tag_name=vX.Y.Z -f previous_tag_name=vPREVIOUS --jq '.body' \
+     | perl -0777 -pe '
+         s/ by \@[\w-]+ in (https:\/\/github\.com\/[^\/]+\/[^\/]+\/pull\/(\d+))/ (#$2)/g;
+         s/## New Contributors\n(?:\*[^\n]*\n)+\n?//;
+       ' > /tmp/notes.md
+
+   gh release create vX.Y.Z --notes-file /tmp/notes.md --latest
+   ```
+
+   The label categorization from `.github/release.yml` still applies automatically; only the per-line attribution is removed.
