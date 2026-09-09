@@ -56,4 +56,15 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:
 
 1. Open a PR merging `develop` into `main`.
 2. Once merged, tag the release on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`
-3. Create the GitHub release with auto-generated notes: `gh release create vX.Y.Z --generate-notes` — this picks up the label categorization from `.github/release.yml` automatically.
+3. Generate and publish the release notes with author attribution stripped:
+
+   ```bash
+   gh api repos/builtnoble/currency-fieldtype/releases/generate-notes \
+     -f tag_name=vX.Y.Z -f previous_tag_name=vPREVIOUS --jq '.body' \
+     | perl -0777 -pe '
+         s/ by \@[\w-]+ in (https:\/\/github\.com\/[^\/]+\/[^\/]+\/pull\/(\d+))/ (#$2)/g;
+         s/## New Contributors\n(?:\*[^\n]*\n)+\n?//;
+       ' > /tmp/notes.md
+
+   gh release create vX.Y.Z --notes-file /tmp/notes.md --latest
+   ```
