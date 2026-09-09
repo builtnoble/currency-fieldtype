@@ -42,9 +42,9 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for configuration options and a full ex
 ```bash
 composer test          # Pest (PHP)
 composer test:feature  # Pest, feature-grouped only
-composer lint           # Pint, check only
-composer analyse        # PHPStan
-composer check           # lint + analyse + test, all at once
+composer lint          # Pint, check only
+composer analyse       # PHPStan
+composer check         # lint + analyse + test, all at once
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development setup and workflow.
