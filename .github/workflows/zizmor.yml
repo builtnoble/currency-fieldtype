@@ -19,4 +19,4 @@ jobs:
   zizmor:
     permissions:
       contents: read
-    uses: builtnoble/.github/.github/workflows/github-actions-security-scan.yml@v1
+    uses: builtnoble/.github/.github/workflows/github-actions-security-scan.yml@057258c6bbb173fc64da8f7b15d93fd837ced874 # v1
