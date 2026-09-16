@@ -9,6 +9,6 @@ jobs:
   lint:
     permissions:
       contents: read
-    uses: builtnoble/.github/.github/workflows/php-code-style-lint.yml@057258c6bbb173fc64da8f7b15d93fd837ced874 # v1
+    uses: builtnoble/.github/.github/workflows/php-code-style-lint.yml@057258c6bbb173fc64da8f7b15d93fd837ced874 # reusable CI workflows for PHP packages
     with:
       php-extensions: intl, mbstring
