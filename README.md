@@ -1,6 +1,10 @@
 # Currency Fieldtype
 
+<!-- statamic:hide -->
+
 > A Statamic fieldtype for storing and displaying monetary values. Values are saved as integers in the smallest currency unit (e.g. cents for USD), formatted for display using the current site locale, and fully configurable per field via ISO currency code.
+
+<!-- /statamic:hide -->
 
 ## Features
 
@@ -38,9 +42,9 @@ See [DOCUMENTATION.md](DOCUMENTATION.md) for configuration options and a full ex
 ```bash
 composer test          # Pest (PHP)
 composer test:feature  # Pest, feature-grouped only
-composer lint           # Pint, check only
-composer analyse        # PHPStan
-composer check           # lint + analyse + test, all at once
+composer lint          # Pint, check only
+composer analyse       # PHPStan
+composer check         # lint + analyse + test, all at once
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development setup and workflow.

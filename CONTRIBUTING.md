@@ -24,18 +24,18 @@ npm install
 ```bash
 composer test          # Pest (PHP)
 composer test:feature  # Pest, feature-grouped only
-npm run test            # Vitest (JS)
+npm run test           # Vitest (JS)
 ```
 
 ## Code style and static analysis
 
 ```bash
-composer lint      # Pint, check only (CI mode)
-composer format     # Pint, auto-fix
-composer analyse    # PHPStan (via Larastan)
-npm run lint         # Biome, check only
-npm run format       # Biome, auto-fix
-composer check       # lint + analyse + test, all at once
+composer lint     # Pint, check only (CI mode)
+composer format   # Pint, auto-fix
+composer analyse  # PHPStan (via Larastan)
+npm run lint      # Biome, check only
+npm run format    # Biome, auto-fix
+composer check    # lint + analyse + test, all at once
 ```
 
 Pint's rules live in `pint.json` and Biome's live in `biome.json` — check those files rather than guessing at style, and don't hand-copy config from other repos.
@@ -56,4 +56,15 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:
 
 1. Open a PR merging `develop` into `main`.
 2. Once merged, tag the release on `main`: `git tag vX.Y.Z && git push origin vX.Y.Z`
-3. Create the GitHub release with auto-generated notes: `gh release create vX.Y.Z --generate-notes` — this picks up the label categorization from `.github/release.yml` automatically.
+3. Generate and publish the release notes with author attribution stripped:
+
+   ```bash
+   gh api repos/builtnoble/currency-fieldtype/releases/generate-notes \
+     -f tag_name=vX.Y.Z -f previous_tag_name=vPREVIOUS --jq '.body' \
+     | perl -0777 -pe '
+         s/ by \@[\w-]+ in (https:\/\/github\.com\/[^\/]+\/[^\/]+\/pull\/(\d+))/ (#$2)/g;
+         s/## New Contributors\n(?:\*[^\n]*\n)+\n?//;
+       ' > /tmp/notes.md
+
+   gh release create vX.Y.Z --notes-file /tmp/notes.md --latest
+   ```
