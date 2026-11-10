@@ -28,7 +28,7 @@
         "larastan/larastan": "^3.9",
         "laravel/pint": "^1.30",
         "orchestra/testbench": "^11.2",
-        "pestphp/pest": "^4.6"
+        "pestphp/pest": "^5.3"
     },
     "scripts": {
         "test": "pest",
